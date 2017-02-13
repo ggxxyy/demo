@@ -182,8 +182,8 @@ $(function(){
 		s = game.add.sprite(0,0,'heart');
 	};
 	
-	function test(){
-		alert(2);
+	function test3(){
+		alert(3);
 	}
 
 
