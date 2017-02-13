@@ -181,6 +181,10 @@ $(function(){
 		var s, t;
 		s = game.add.sprite(0,0,'heart');
 	};
+	
+	function test(){
+		console.log(1);
+	}
 
 
 });
