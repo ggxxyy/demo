@@ -1,0 +1,69 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+	<meta charset='utf-8'/>
+	<title>phaser</title>
+	<meta name='viewport' content='width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no'/>
+	<meta name='apple-mobile-web-app-capable' content='yes' />
+	<meta name='screen-orientation' content='portrait' />
+	<meta http-equiv="pragma" content="no-cache">
+	<meta http-equiv="cache-control" content="no-cache">
+	<meta http-equiv="expires" content="0">
+	<link href="css/reset.css" rel="stylesheet" />
+	<script src="js/loader.js"></script>
+	<script src="js/phaser.js" ></script>
+	<script>
+		var app = {};
+		app.sound = {mute:false};
+		app.systemScroll = false;
+		window.addEventListener('touchmove', function(e){ !app.systemScroll && e.preventDefault(); }, false);
+		window.addEventListener('load', function(){
+			var myload;
+			var assetloading_text = document.querySelector(".assetloading var");
+			var assetloading_line = document.querySelector(".assetloading i");
+			myload = new loader('.asset1');
+			myload.onLoading=function(p){
+				assetloading_text.innerHTML = Math.floor(p*100)+'%';
+				assetloading_line.style.width = Math.floor(p*100)+'%';
+				if(p<1){ return; }
+				document.querySelector('.wrapper').setAttribute('class', 'wrapper cache');
+				window.setTimeout(function(){ appBegin(); }, 300);
+			}
+			myload.load();
+		}, false);
+	</script>
+</head>
+<body>
+	
+	<!--资源loading-->
+	<div class="assetloading">
+		<center><var>0%</var><p><i></i></p></center>
+	</div>
+	
+	<div class="loading">
+		<center><i></i></center>
+	</div>
+	
+	<!--场景-->
+    <div class="wrapper">
+    	
+    	<section class="game">
+    	</section>
+    	
+    </div>
+    
+    
+    <!--资源列表-->
+	<div class="asset asset1">
+		<!--<link assetUrl="css/main.css" noCache="1" />-->
+		<script assetUrl="js/jquery-2.1.1.min.js" ></script>
+		<script assetUrl="js/jquery-transit.min.js" ></script>
+		<script assetUrl="js/main.js" noCache="1"></script>
+		<img assetUrl="img/loading.png" />
+	</div>
+	
+	
+	
+	
+</body>
+</html>
