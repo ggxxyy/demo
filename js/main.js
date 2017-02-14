@@ -179,12 +179,8 @@ $(function(){
 	
 	function gameCreate(){
 		var s, t;
-		s = game.add.sprite(0,0,'heart');
+		s = game.add.sprite(320,0,'heart');
 	};
-	
-	function test3(){
-		alert(3);
-	}
 
 
 });
