@@ -108,21 +108,68 @@ function initGame(){
 				temp.fill = '#fff';
 				temp.anchor.setTo(0.5, 0.45);
 				this._childs.btn.addChild(temp);
-				this._childs.btn.onInputDown.add(function(e){
-					e.scale.set(0.97);
-					e.getChildAt(0).fill = '#cfc';
+				this._childs.btn.onInputDown.add(function(el, e){
+					el.scale.set(0.97);
+					el.getChildAt(0).fill = '#cfc';
 				});
-				this._childs.btn.onInputUp.add(function(e){
-					e.scale.set(1);
-					e.getChildAt(0).fill = '#fff';
+				this._childs.btn.onInputUp.add(function(el, e){
+					el.scale.set(1);
+					el.getChildAt(0).fill = '#fff';
+					if(e.timeUp-e.timeDown<500){
+						game.add.tween(game.world).to({alpha:0}, 300, Phaser.Easing.Linear.None, true).onComplete.add(function(){
+							game.state.start('play');
+						});
+					}
 				});
-				
 				game.add.tween(this._childs.title.scale).from({x:5,y:5}, 600, Phaser.Easing.Cubic.In, true);
 				game.add.tween(this._childs.title).from({alpha:0, rotation:-Math.PI*2}, 600, Phaser.Easing.Cubic.In, true);
 				game.add.tween(this._childs.btn).from({alpha:0,y:'+200'}, 300, Phaser.Easing.Cubic.Out, true, 700);
 			},
 			update: function(){
 				this._childs.bg.tilePosition.y+=1;
+			},
+			shutdown: function(){
+				game.world.alpha=1;
+			}
+		},
+		play: {
+			create: function(){
+				console.log('play.create');
+				var temp, _this=this;
+				this._childs = {};
+				game.physics.startSystem(Phaser.Physics.ARCADE);
+				
+				this._childs.bg = game.add.tileSprite(0, 0, game.width, game.height, 'bg');
+				
+				this._childs.snakeHead = game.add.sprite(0,0,'snake-head');
+				this._childs.snakeHead.anchor.set(0.5);
+				this._childs.snakeHead.position.set(game.width*0.5, game.height*0.5);
+				game.physics.enable(this._childs.snakeHead, Phaser.Physics.ARCADE);
+				this._childs.snakeHead.body.allowRotation = false;
+				this._childs.snakeHead.body.velocity_speed = 400;
+				this._childs.snakeHead.body.velocity.setTo(0, -this._childs.snakeHead.body.velocity_speed);
+				
+				this._childs.touchLayer = game.add.button(0,0);
+				this._childs.touchLayer.width = game.width;
+				this._childs.touchLayer.height = game.height;
+				this._childs.touchLayer.onInputDown.add(function(el, e){
+					var p = new Phaser.Point(e.position.x-_this._childs.snakeHead.x, e.position.y-_this._childs.snakeHead.y);
+					p.normalize();
+					p.multiply(_this._childs.snakeHead.body.velocity_speed, _this._childs.snakeHead.body.velocity_speed);
+					_this._childs.snakeHead.body.velocity.setTo(p.x, p.y);
+					_this._childs.snakeHead.rotation = game.physics.arcade.angleToPointer(_this._childs.snakeHead, e)+Math.PI*0.5;
+				});
+				
+			},
+			update: function(){
+				
+				if(!this._childs.snakeHead.inWorld){
+					//game.physics.arcade.isPaused = true;
+					//game.state.getCurrentState().state.pause();
+					game.paused = true;
+					console.log('游戏结束')
+				}
+				
 			}
 		}
 	}
