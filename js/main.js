@@ -44,15 +44,15 @@ function initGame(){
 			init: function(){
 				console.log('loading.init');
 				this._childs = {};
-				
+				//进度条背景
 				this._childs.line = game.add.graphics(0, 0);
 				this._childs.line.lineStyle(2, 0xffffff, 0.2);
 				this._childs.line.moveTo(game.width*0.2, game.height*0.5);
 				this._childs.line.lineTo(game.width*0.8, game.height*0.5);
-				
+				//进度条
 				this._childs.line2 = game.add.graphics(0, 0);
 				this._childs.line2.lineStyle(2, 0xffffff, 1);
-				
+				//进度文字
 				this._childs.text = game.add.text(game.width*0.5, game.height*0.47, '0%');
 				this._childs.text.anchor.setTo(0.5, 0.5);
 				this._childs.text.align = 'center';
@@ -80,28 +80,31 @@ function initGame(){
 				game.load.image('title', 'img/title.png');
 				game.load.image('snake-head', 'img/snake-head.png');
 				game.load.image('snake-body', 'img/snake-body.png');
-				
+				game.load.spritesheet('result', 'img/result.png', 32, 32, 3);
 			},
 			shutdown: function(){
 				game.world.alpha=1;
 			}
 		},
 		home: {
+			init: function(data){
+				this._result = data;
+			},
 			create: function(){
 				console.log('home.create');
-				var temp;
+				var temp, _this = this;
 				this._childs = {};
-				
+				//背景
 				this._childs.bg = game.add.tileSprite(0, 0, game.width, game.height, 'bg');
-				
+				//标题
 				this._childs.title = game.add.sprite(0, 100, 'title');
 				this._childs.title.anchor.set(0.5);
 				this._childs.title.position.set(game.width*0.5, game.height*0.2);
-				
+				//按钮
 				this._childs.btn = game.add.button(0,0,'btn');
 				this._childs.btn.anchor.set(0.5);
-				this._childs.btn.position.set(game.width*0.5, game.height*0.75);
-				temp = game.add.text(0,0,'START');
+				this._childs.btn.position.set(game.width*0.5, this._result?game.height*0.85:game.height*0.75);
+				temp = game.add.text(0,0, this._result?'再玩一次':'START');
 				temp.align = 'center';
 				temp.fontWeight = 'normal';
 				temp.fontSize = 48;
@@ -121,9 +124,46 @@ function initGame(){
 						});
 					}
 				});
+				//动画
 				game.add.tween(this._childs.title.scale).from({x:5,y:5}, 600, Phaser.Easing.Cubic.In, true);
 				game.add.tween(this._childs.title).from({alpha:0, rotation:-Math.PI*2}, 600, Phaser.Easing.Cubic.In, true);
 				game.add.tween(this._childs.btn).from({alpha:0,y:'+200'}, 300, Phaser.Easing.Cubic.Out, true, 700);
+				//成绩
+				if(this._result){
+					//#4e9e41
+					this._childs.point = game.add.text(0,0,'0');
+					this._childs.point.align = 'center';
+					this._childs.point.fontSize = 72;
+					this._childs.point.fill = '#fff';
+					this._childs.point.anchor.set(0.5);
+					this._childs.point.position.set(game.width*0.5, this._childs.title.y+200);
+					this._childs.point_line = game.add.graphics(game.width*0.5, this._childs.point.y+60);
+					this._childs.point_line.lineStyle(3, 0xffffff, 0.75);
+					this._childs.point_line.moveTo(-game.width*0.3, 0);
+					this._childs.point_line.lineTo(game.width*0.3, 0);
+					for(var i=1; i<=3; i++){
+						this._childs['point'+i] = game.add.text(game.width*0.44, this._childs.point_line.y-10+i*50, ' ');
+						this._childs['point'+i].fontSize = 30;
+						this._childs['point'+i].fill = '#fff';
+						this._childs['point'+i].fontWeight = 'normal';
+						temp = game.add.image(-50, 0, 'result', i-1);
+						this._childs['point'+i].addChild(temp);
+					}
+					this._childs.point1.text = '身长 '+this._result.size+'米';
+					this._childs.point2.text = '吃掉 '+this._result.food+'个';
+					this._childs.point3.text = '用时 '+this._result.time+'秒';
+					game.add.tween(this._childs.point_line.scale).from({x:0}, 300, Phaser.Easing.Cubic.Out, true, 1000);
+					game.add.tween(this._childs.point).from({y:'+50', alpha:0}, 300, Phaser.Easing.Cubic.Out, true, 1200);
+					game.add.tween(this._childs.point1).from({y:'-50', alpha:0}, 300, Phaser.Easing.Cubic.Out, true, 1500);
+					game.add.tween(this._childs.point2).from({y:'-50', alpha:0}, 300, Phaser.Easing.Cubic.Out, true, 1750);
+					game.add.tween(this._childs.point3).from({y:'-50', alpha:0}, 300, Phaser.Easing.Cubic.Out, true, 2000);
+					game.add.tween(this._result).from({point:0}, 1000, Phaser.Easing.Linear.None, true, 1400).onUpdateCallback(function(tween, percent, tweenData){
+						_this._childs.point.text = Math.floor(tween.target.point);
+					}).onComplete.add(function(){
+						_this._childs.point.text = _this._result.point;
+					});
+				}
+				
 			},
 			update: function(){
 				this._childs.bg.tilePosition.y+=1;
@@ -135,41 +175,89 @@ function initGame(){
 		play: {
 			create: function(){
 				console.log('play.create');
-				var temp, _this=this;
+				var _this=this, temp;
+				this._gdata = {
+					is_end: false,
+					snake_speed: 400,
+					snake_path: []
+				}
 				this._childs = {};
 				game.physics.startSystem(Phaser.Physics.ARCADE);
-				
+				//背景
 				this._childs.bg = game.add.tileSprite(0, 0, game.width, game.height, 'bg');
-				
+				//食物
+				this._childs.foods = game.add.group(undefined, 'foods');
+				this._childs.foods.enableBody = true;
+    			this._childs.foods.physicsBodyType = Phaser.Physics.ARCADE;
+				function addFood(){
+					if(_this._childs.foods.length>10){ return; }
+					var temp = _this._childs.foods.create(game.world.randomX, game.world.randomY, 'food');
+					//temp.body.immovable = true;
+					game.time.events.add(Math.floor(Math.random()*1000)+1000, addFood);
+				}
+				game.time.events.add(800, addFood);
+				//蛇头
 				this._childs.snakeHead = game.add.sprite(0,0,'snake-head');
 				this._childs.snakeHead.anchor.set(0.5);
 				this._childs.snakeHead.position.set(game.width*0.5, game.height*0.5);
 				game.physics.enable(this._childs.snakeHead, Phaser.Physics.ARCADE);
 				this._childs.snakeHead.body.allowRotation = false;
-				this._childs.snakeHead.body.velocity_speed = 400;
-				this._childs.snakeHead.body.velocity.setTo(0, -this._childs.snakeHead.body.velocity_speed);
-				
+				this._childs.snakeHead.body.velocity.setTo(0, -this._gdata.snake_speed);
+//				this._childs.snakeHead.checkWorldBounds = true;
+//      		this._childs.snakeHead.events.onOutOfBounds.add(function(){
+//      			console.log(1)
+//      		}, this);
+				//蛇身
+				this._childs.snakeBody = game.add.group(undefined, 'snakeBody');
+				for(var i=0;i<3;i++){
+					temp = game.add.image(0,0,'snake-body',0,this._childs.snakeBody);
+					temp.anchor.set(0.5);
+					temp.position.set(this._childs.snakeHead.x, this._childs.snakeHead.y);
+					temp.angle_fix = temp.angle = Math.random()*360;
+				}
+				game.world.swapChildren(this._childs.snakeHead, this._childs.snakeBody);
+				//交互层
 				this._childs.touchLayer = game.add.button(0,0);
 				this._childs.touchLayer.width = game.width;
 				this._childs.touchLayer.height = game.height;
 				this._childs.touchLayer.onInputDown.add(function(el, e){
 					var p = new Phaser.Point(e.position.x-_this._childs.snakeHead.x, e.position.y-_this._childs.snakeHead.y);
 					p.normalize();
-					p.multiply(_this._childs.snakeHead.body.velocity_speed, _this._childs.snakeHead.body.velocity_speed);
+					p.multiply(_this._gdata.snake_speed, _this._gdata.snake_speed);
 					_this._childs.snakeHead.body.velocity.setTo(p.x, p.y);
 					_this._childs.snakeHead.rotation = game.physics.arcade.angleToPointer(_this._childs.snakeHead, e)+Math.PI*0.5;
 				});
-				
 			},
 			update: function(){
-				
-				if(!this._childs.snakeHead.inWorld){
-					//game.physics.arcade.isPaused = true;
-					//game.state.getCurrentState().state.pause();
-					game.paused = true;
-					console.log('游戏结束')
+				var _this = this;
+				if(!this._gdata.is_end && !this._childs.snakeHead.inWorld){
+					console.log('游戏结束');
+					this._gdata.is_end = true;
+					game.physics.arcade.isPaused = true;
+					game.state.getCurrentState().state.pause();
+					game.add.tween(game.world).to({alpha:0}, 300, Phaser.Easing.Linear.None, true).onComplete.add(function(){
+						game.state.start('home', false, false, {point:1200, size:6, time:18000, food:16});
+					});
 				}
-				
+				this._gdata.snake_path.unshift({x: this._childs.snakeHead.x, y:this._childs.snakeHead.y, a:this._childs.snakeHead.angle});
+				if(this._gdata.snake_path.length>300){ this._gdata.snake_path.pop(); }
+				this._childs.snakeBody.forEachExists(function(child){
+					var data = _this._gdata.snake_path[child.z*3+3];
+					if(!data){ return; }
+					child.position.set(data.x, data.y);
+					child.angle=data.angle+data.angle_fix;
+				});
+				game.physics.arcade.overlap(this._childs.snakeHead, this._childs.foods, function(a, b){
+					var temp = game.add.image(0,0,'snake-body',0,_this._childs.snakeBody);
+					var data = _this._gdata.snake_path[temp.z*3+3] || {x:-999, y:-999};
+					temp.anchor.set(0.5);
+					temp.position.set(data.x, data.y);
+					temp.angle_fix = temp.angle = Math.random()*360;
+					_this._childs.foods.remove(b, true);
+				});
+			},
+			shutdown: function(){
+				game.world.alpha=1;
 			}
 		}
 	}
@@ -180,47 +268,4 @@ function initGame(){
 	game.state.start('boot');
 	
 	
-};
-
-
-function gamePreload(){
-	console.log(22)
-	var preload, preload_line, preload_text;
-	preload = game.add.group(game.stage, 'preload');
-	
-	preload_text = game.add.text(game.width*0.5, game.height*0.47, '0%');
-	preload_text.anchor.setTo(0.5, 0.5);
-	preload_text.align = 'center';
-	preload_text.fontWeight = 'normal';
-	preload_text.fontSize = 24;
-	preload_text.fill = '#fff';
-	preload.addChild(preload_text);
-	
-	preload_line = game.add.graphics(0, 0);
-	preload_line.lineStyle(2, 0xffffff, 0.2);
-	preload_line.moveTo(game.width*0.2, game.height*0.5);
-	preload_line.lineTo(game.width*0.8, game.height*0.5);
-	preload.addChild(preload_line);
-	
-	game.load.onFileComplete.add(function(p){
-		console.log(p)
-	});
-	game.load.onLoadComplete.addOnce(function(){
-		console.log('loaded');
-	});
-	
-	
-	game.load.image('bg', 'img/bg.jpg');
-	game.load.image('btn', 'img/btn.png');
-	game.load.image('food', 'img/food.png');
-	game.load.image('title', 'img/title.png');
-	game.load.image('snake-head', 'img/snake-head.png');
-	game.load.image('snake-body', 'img/snake-body.png');
-	
-};
-
-function gameCreate(){
-	var s, t;
-	console.log(1)
-	//s = game.add.sprite(320,0,'bg');
 };
