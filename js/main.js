@@ -69,14 +69,14 @@ function initGame(){
 					_this._childs.line2.lineTo(game.width*0.2+(game.width*0.6*p*0.01), game.height*0.5);
 				});
 				game.load.onLoadComplete.addOnce(function(){
-					game.add.tween(game.world).to({alpha:0}, 300, Phaser.Easing.Linear.None, true, 300).onComplete.add(function(){
+					game.add.tween(game.world).to({alpha:0}, 300, Phaser.Easing.Linear.None, true, 300).onComplete.addOnce(function(){
 						game.state.start('home');
 					});
 				});
 				game.load.image('loading', 'img/loading.png');
 				game.load.image('bg', 'img/bg.jpg');
 				game.load.image('btn', 'img/btn.png');
-				game.load.image('food', 'img/food.png');
+				game.load.spritesheet('food', 'img/food.png', 32, 32, 3);
 				game.load.image('title', 'img/title.png');
 				game.load.image('snake-head', 'img/snake-head.png');
 				game.load.image('snake-body', 'img/snake-body.png');
@@ -104,8 +104,9 @@ function initGame(){
 				this._childs.btn = game.add.button(0,0,'btn');
 				this._childs.btn.anchor.set(0.5);
 				this._childs.btn.position.set(game.width*0.5, this._result?game.height*0.85:game.height*0.75);
-				temp = game.add.text(0,0, this._result?'再玩一次':'START');
+				temp = game.add.text(0,0, this._result?'再玩一次':'开始游戏');
 				temp.align = 'center';
+				temp.font = 'arial';
 				temp.fontWeight = 'normal';
 				temp.fontSize = 48;
 				temp.fill = '#fff';
@@ -119,7 +120,7 @@ function initGame(){
 					el.scale.set(1);
 					el.getChildAt(0).fill = '#fff';
 					if(e.timeUp-e.timeDown<500){
-						game.add.tween(game.world).to({alpha:0}, 300, Phaser.Easing.Linear.None, true).onComplete.add(function(){
+						game.add.tween(game.world).to({alpha:0}, 300, Phaser.Easing.Linear.None, true).onComplete.addOnce(function(){
 							game.state.start('play');
 						});
 					}
@@ -130,7 +131,6 @@ function initGame(){
 				game.add.tween(this._childs.btn).from({alpha:0,y:'+200'}, 300, Phaser.Easing.Cubic.Out, true, 700);
 				//成绩
 				if(this._result){
-					//#4e9e41
 					this._childs.point = game.add.text(0,0,'0');
 					this._childs.point.align = 'center';
 					this._childs.point.fontSize = 72;
@@ -142,12 +142,13 @@ function initGame(){
 					this._childs.point_line.moveTo(-game.width*0.3, 0);
 					this._childs.point_line.lineTo(game.width*0.3, 0);
 					for(var i=1; i<=3; i++){
-						this._childs['point'+i] = game.add.text(game.width*0.44, this._childs.point_line.y-10+i*50, ' ');
-						this._childs['point'+i].fontSize = 30;
-						this._childs['point'+i].fill = '#fff';
-						this._childs['point'+i].fontWeight = 'normal';
-						temp = game.add.image(-50, 0, 'result', i-1);
-						this._childs['point'+i].addChild(temp);
+						temp = game.add.text(game.width*0.42, this._childs.point_line.y-10+i*50, ' ');
+						temp.font = 'arial';
+						temp.fontSize = 30;
+						temp.fill = '#fff';
+						temp.fontWeight = 'normal';
+						temp.addChild(game.add.image(-50, 0, 'result', i-1));
+						this._childs['point'+i] = temp;
 					}
 					this._childs.point1.text = '身长 '+this._result.size+'米';
 					this._childs.point2.text = '吃掉 '+this._result.food+'个';
@@ -159,7 +160,7 @@ function initGame(){
 					game.add.tween(this._childs.point3).from({y:'-50', alpha:0}, 300, Phaser.Easing.Cubic.Out, true, 2000);
 					game.add.tween(this._result).from({point:0}, 1000, Phaser.Easing.Linear.None, true, 1400).onUpdateCallback(function(tween, percent, tweenData){
 						_this._childs.point.text = Math.floor(tween.target.point);
-					}).onComplete.add(function(){
+					}).onComplete.addOnce(function(){
 						_this._childs.point.text = _this._result.point;
 					});
 				}
@@ -176,12 +177,14 @@ function initGame(){
 			create: function(){
 				console.log('play.create');
 				var _this=this, temp;
+				this._childs = {};
 				this._gdata = {
 					is_end: false,
+					time_begin: game.time.now,
+					food_get: 0,
 					snake_speed: 400,
 					snake_path: []
 				}
-				this._childs = {};
 				game.physics.startSystem(Phaser.Physics.ARCADE);
 				//背景
 				this._childs.bg = game.add.tileSprite(0, 0, game.width, game.height, 'bg');
@@ -190,23 +193,35 @@ function initGame(){
 				this._childs.foods.enableBody = true;
     			this._childs.foods.physicsBodyType = Phaser.Physics.ARCADE;
 				function addFood(){
-					if(_this._childs.foods.length>10){ return; }
-					var temp = _this._childs.foods.create(game.world.randomX, game.world.randomY, 'food');
-					//temp.body.immovable = true;
-					game.time.events.add(Math.floor(Math.random()*1000)+1000, addFood);
+					if(_this._gdata.is_end || _this._childs.foods.length>10){ return; }
+					var type = game.rnd.frac()>0.3 ? 0 : (game.rnd.frac()>0.4 ? 1 : 2);
+					var temp = _this._childs.foods.create(game.rnd.between(20, game.width-20), game.rnd.between(20, game.height-20), 'food', type);
+					temp.name = 'foot'+type;
+					temp.anchor.set(0.5);
+					temp.body.enable = false;
+					game.add.tween(temp.scale).from({x:0, y:0}, 200, Phaser.Easing.Linear.None, true).onComplete.addOnce(function(){
+						if(_this._gdata.is_end){ return; }
+						temp = 0.7;
+						this.body.setSize(this.width*temp, this.height*temp, this.width*(1-temp)*0.5, this.height*(1-temp)*0.5);
+						this.body.enable = true;
+						game.time.events.add(Math.floor(Math.random()*1000)+1000, addFood);
+					}, temp);
+					if(type>0){
+						game.add.tween(temp).to({alpha:0}, 200, Phaser.Easing.Linear.None, true, 4000).onComplete.addOnce(function(e){
+							e.parent.remove(e, true);
+						});
+					}
 				}
 				game.time.events.add(800, addFood);
 				//蛇头
 				this._childs.snakeHead = game.add.sprite(0,0,'snake-head');
 				this._childs.snakeHead.anchor.set(0.5);
-				this._childs.snakeHead.position.set(game.width*0.5, game.height*0.5);
-				game.physics.enable(this._childs.snakeHead, Phaser.Physics.ARCADE);
+				this._childs.snakeHead.position.set(game.width*0.5, game.height);
+				game.physics.arcade.enableBody(this._childs.snakeHead);
+				temp = 0.6;
+				this._childs.snakeHead.body.setSize(this._childs.snakeHead.width*temp, this._childs.snakeHead.height*temp, this._childs.snakeHead.width*(1-temp)*0.5, this._childs.snakeHead.height*(1-temp)*0.5);
 				this._childs.snakeHead.body.allowRotation = false;
 				this._childs.snakeHead.body.velocity.setTo(0, -this._gdata.snake_speed);
-//				this._childs.snakeHead.checkWorldBounds = true;
-//      		this._childs.snakeHead.events.onOutOfBounds.add(function(){
-//      			console.log(1)
-//      		}, this);
 				//蛇身
 				this._childs.snakeBody = game.add.group(undefined, 'snakeBody');
 				for(var i=0;i<3;i++){
@@ -221,24 +236,63 @@ function initGame(){
 				this._childs.touchLayer.width = game.width;
 				this._childs.touchLayer.height = game.height;
 				this._childs.touchLayer.onInputDown.add(function(el, e){
+					if(_this._gdata.is_end){ return; }
 					var p = new Phaser.Point(e.position.x-_this._childs.snakeHead.x, e.position.y-_this._childs.snakeHead.y);
 					p.normalize();
 					p.multiply(_this._gdata.snake_speed, _this._gdata.snake_speed);
+					_this._gdata.snake_speed+=1;
 					_this._childs.snakeHead.body.velocity.setTo(p.x, p.y);
 					_this._childs.snakeHead.rotation = game.physics.arcade.angleToPointer(_this._childs.snakeHead, e)+Math.PI*0.5;
 				});
+				//游戏结束
+				this._endAction = function(){
+					game.physics.arcade.isPaused = true;
+					game.state.getCurrentState().state.pause();
+					game.add.tween(game.world).to({alpha:0}, 300, Phaser.Easing.Linear.None, true, 300).onComplete.addOnce(function(){
+						var result = { 
+							point: 0,
+							size: ((_this._childs.snakeBody.length+1)*0.1).toFixed(1)*1, 
+							time: ((game.time.now-_this._gdata.time_begin)*0.001).toFixed(1)*1, 
+							food: _this._gdata.food_get
+						};
+						result.point = Math.ceil(result.size*100+result.time*2+result.food*25); 
+						game.world.remove(_this._childs.foods, true);
+						game.world.remove(_this._childs.snakeHead, true);
+						game.world.remove(_this._childs.snakeBody, true);
+						game.state.start('home', false, false, result);
+					});
+				}
 			},
 			update: function(){
 				var _this = this;
-				if(!this._gdata.is_end && !this._childs.snakeHead.inWorld){
-					console.log('游戏结束');
-					this._gdata.is_end = true;
-					game.physics.arcade.isPaused = true;
-					game.state.getCurrentState().state.pause();
-					game.add.tween(game.world).to({alpha:0}, 300, Phaser.Easing.Linear.None, true).onComplete.add(function(){
-						game.state.start('home', false, false, {point:1200, size:6, time:18000, food:16});
-					});
+				if(this._gdata.is_end){ return; }
+				//出界
+				if(!this._childs.snakeHead.inWorld){
+					_this._gdata.is_end = true;
+					_this._endAction();
+					return;
 				}
+				//吃食
+				game.physics.arcade.overlap(this._childs.snakeHead, this._childs.foods, function(a, b){
+					var temp, data;
+					if(b.name == 'foot0'){ //蛇身增长
+						temp = game.add.image(0,0,'snake-body',0, _this._childs.snakeBody);
+						data = _this._gdata.snake_path[temp.z*3+3] || {x:-999, y:-999};
+						temp.anchor.set(0.5);
+						temp.position.set(data.x, data.y);
+						temp.angle_fix = temp.angle = Math.random()*360;
+						_this._gdata.food_get += 1;
+					}else if(b.name == 'foot1'){ //蛇身减少
+						if(_this._childs.snakeBody.length>1){
+							_this._childs.snakeBody.remove(_this._childs.snakeBody.getBottom(), true);
+						}
+					}else if(b.name == 'foot2'){ //中毒死亡
+						_this._gdata.is_end = true;
+						_this._endAction();
+					}
+					b.parent.remove(b, true);
+				});
+				//更新蛇身
 				this._gdata.snake_path.unshift({x: this._childs.snakeHead.x, y:this._childs.snakeHead.y, a:this._childs.snakeHead.angle});
 				if(this._gdata.snake_path.length>300){ this._gdata.snake_path.pop(); }
 				this._childs.snakeBody.forEachExists(function(child){
@@ -246,14 +300,6 @@ function initGame(){
 					if(!data){ return; }
 					child.position.set(data.x, data.y);
 					child.angle=data.angle+data.angle_fix;
-				});
-				game.physics.arcade.overlap(this._childs.snakeHead, this._childs.foods, function(a, b){
-					var temp = game.add.image(0,0,'snake-body',0,_this._childs.snakeBody);
-					var data = _this._gdata.snake_path[temp.z*3+3] || {x:-999, y:-999};
-					temp.anchor.set(0.5);
-					temp.position.set(data.x, data.y);
-					temp.angle_fix = temp.angle = Math.random()*360;
-					_this._childs.foods.remove(b, true);
 				});
 			},
 			shutdown: function(){
