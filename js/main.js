@@ -81,6 +81,21 @@ function initGame(){
 				game.load.image('snake-head', 'img/snake-head.png');
 				game.load.image('snake-body', 'img/snake-body.png');
 				game.load.spritesheet('result', 'img/result.png', 32, 32, 3);
+				game.load.audio('fx', 'sound/fx.mp3');
+				game.load.audio('bg', 'sound/bg.mp3');
+			},
+			create: function(){
+				app.sound = {};
+				app.sound.fx = game.add.audio('fx');
+				app.sound.fx.allowMultiple = true;
+				app.sound.fx.addMarker('btn', 1, 0.3);
+				app.sound.fx.addMarker('food0', 2, 0.9);
+				app.sound.fx.addMarker('food1', 4, 0.5);
+				app.sound.fx.addMarker('die', 5, 2.6);
+				app.sound.fx.addMarker('title', 9, 2);
+				
+				app.sound.bg = game.add.audio('bg');
+				app.sound.bg.loopFull(0.5);
 			},
 			shutdown: function(){
 				game.world.alpha=1;
@@ -115,6 +130,7 @@ function initGame(){
 				this._childs.btn.onInputDown.add(function(el, e){
 					el.scale.set(0.97);
 					el.getChildAt(0).fill = '#cfc';
+					app.sound.fx.play('btn');
 				});
 				this._childs.btn.onInputUp.add(function(el, e){
 					el.scale.set(1);
@@ -129,6 +145,7 @@ function initGame(){
 				game.add.tween(this._childs.title.scale).from({x:5,y:5}, 600, Phaser.Easing.Cubic.In, true);
 				game.add.tween(this._childs.title).from({alpha:0, rotation:-Math.PI*2}, 600, Phaser.Easing.Cubic.In, true);
 				game.add.tween(this._childs.btn).from({alpha:0,y:'+200'}, 300, Phaser.Easing.Cubic.Out, true, 700);
+				app.sound.fx.play('title');
 				//成绩
 				if(this._result){
 					this._childs.point = game.add.text(0,0,'0');
@@ -248,7 +265,7 @@ function initGame(){
 				this._endAction = function(){
 					game.physics.arcade.isPaused = true;
 					game.state.getCurrentState().state.pause();
-					game.add.tween(game.world).to({alpha:0}, 300, Phaser.Easing.Linear.None, true, 300).onComplete.addOnce(function(){
+					game.add.tween(game.world).to({alpha:0}, 300, Phaser.Easing.Linear.None, true, 1500).onComplete.addOnce(function(){
 						var result = { 
 							point: 0,
 							size: ((_this._childs.snakeBody.length+1)*0.1).toFixed(1)*1, 
@@ -261,6 +278,7 @@ function initGame(){
 						game.world.remove(_this._childs.snakeBody, true);
 						game.state.start('home', false, false, result);
 					});
+					app.sound.fx.play('die');
 				}
 			},
 			update: function(){
@@ -282,10 +300,12 @@ function initGame(){
 						temp.position.set(data.x, data.y);
 						temp.angle_fix = temp.angle = Math.random()*360;
 						_this._gdata.food_get += 1;
+						app.sound.fx.play('food0');
 					}else if(b.name == 'foot1'){ //蛇身减少
 						if(_this._childs.snakeBody.length>1){
 							_this._childs.snakeBody.remove(_this._childs.snakeBody.getBottom(), true);
 						}
+						app.sound.fx.play('food1');
 					}else if(b.name == 'foot2'){ //中毒死亡
 						_this._gdata.is_end = true;
 						_this._endAction();
